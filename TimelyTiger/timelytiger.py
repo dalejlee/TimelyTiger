@@ -39,6 +39,26 @@ def homePage():
 
 @route('/eventForm')
 def eventForm():
+    yEmail = remove_none(request.get_cookie('yEmail'))
+    pEmail = remove_none(request.get_cookie('pEmail'))
+    date = remove_none(request.get_cookie('date'))
+    time = remove_none(request.get_cookie('time'))
+    place = remove_none(request.get_cookie('place'))
+    #Store form data in an Event object here
+ 
+    #Update the database here
+    
+    templateInfo = {
+        'yEmail': yEmail,
+        'pEmail': pEmail,
+        'date': date,
+        'time': time,
+        'place': place}
+    
+    return template('eventpage.tpl', templateInfo)
+    
+@route('/showTimes')
+def showTimes():
 
     yEmail = remove_none(request.query.get('yEmail'))
     pEmail = remove_none(request.query.get('pEmail'))
@@ -51,24 +71,8 @@ def eventForm():
     response.set_cookie('date', date)
     response.set_cookie('time', time)
     response.set_cookie('place', place)
-
-    #Store form data in an Event object here
- 
-    #Update the database here
     
-    templateInfo = {
-        'prevyEmail': yEmail,
-        'prevpEmail': pEmail,
-        'prevDate': date,
-        'prevTime': time,
-        'prevPlace': place}
-    
-    return template('eventpage.tpl', templateInfo)
-    
-@route('/showTimes')
-def showTimes():
-    #Fetch Google Calendar data; generate list of times
-    
+    #Fetch Google Calendar data; generate list of times    
     list_times = ["3:00pm", "7:00pm", "8:00pm"]
     num_times = len(list_times)
 
@@ -82,14 +86,12 @@ def eventDetails():
     #Add selected time to previous event
     time = request.query.time
     
-    yEmail = request.get_cookie('yEmail')
-    pEmail = request.get_cookie('pEmail')
-    date = request.get_cookie('date')
-    time = request.get_cookie('time')
-    place = request.get_cookie('place')
+    yEmail = remove_none(request.get_cookie('yEmail'))
+    pEmail = remove_none(request.get_cookie('pEmail'))
+    date = remove_none(request.get_cookie('date'))
+    place = remove_none(request.get_cookie('place'))
 
     templateInfo = {
-        'time': time,
         'yEmail': yEmail,
         'pEmail': pEmail,
         'date': date,

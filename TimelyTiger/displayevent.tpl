@@ -17,14 +17,14 @@ Please review the details below. <br>
 		</td>
 	</tr>
 	<tr>
-		<td>Date (MMDDYYYY):</td>
+		<td>Date:</td>
 		<td>
 			{{date}}
 			<br>
 		</td>
 	</tr>
 	<tr>
-		<td>Time (in hours):</td>
+		<td>Time:</td>
 		<td>
 			{{time}}
 			<br>
@@ -35,12 +35,6 @@ Please review the details below. <br>
 		<td>
 			{{place}}
 			<br>
-		</td>
-	</tr>
-	<tr>
-		<td>Time:</td>
-		<td>
-			{{time}}
 		</td>
 	</tr>
 	<tr>
