@@ -1,12 +1,11 @@
 <!DOCTYPE html>
  <html>
 	<head>
-		<title>Create an Event</title>
+		<title>Review page</title>
 	</head>
 	<body>
 		% include('header.tpl')
-		Welcome back {{yEmail}}
-		% include('eventform.tpl')
+		% include('displayPastEvent.tpl')
 		% include('footer.tpl')
    </body>
  </html>

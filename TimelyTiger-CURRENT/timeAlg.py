@@ -52,7 +52,6 @@ def dataToAvs(data, user):
 
 def convertToSecs(timeinfo): # mktiny
 
-    print timeinfo
     t = timeinfo.replace('T', '-')
     t = t[:-6]
     t = str(t)
@@ -99,6 +98,17 @@ def convertToRFC(time):# int -> 2018-11-23T09:30:00-05:00
     seconds =  time % 60
     return str(year) + '-' + str(month) + '-' + str(day) + 'T' + str(hour) + ':' + str(minute) + ':' + str(seconds) + '-05:00'
 
+# 2018-12-14 06:00, 60  --> 2018-12-14T07:00:00-05:00
+def createEndTime(startdate, meetingLength):
+    seconds = meetingLength*60
+    startdateMod = startdate[0:10] + 'T' + startdate[11:19] + ':00-05:00'
+
+    startdate2 = convertToSecs(startdateMod)
+    startdate2 = startdate2 + seconds
+    edt = str(datetime.fromtimestamp(mktime(gmtime(startdate2))).strftime("%Y-%m-%d %H:%M"))
+
+    enddateMod = edt[0:10] + 'T' + edt[11:19] + ':00-05:00'
+    return enddateMod
 
 def timeAlgorithm(file, people, startTimeRange, endTimeRange, meetingLength):
     # starttime = 1544831400
@@ -122,10 +132,45 @@ def timeAlgorithm(file, people, startTimeRange, endTimeRange, meetingLength):
     
     mylist = checkRanges(createCutoffs(avs,starttime,endtime),avs,users)
     mylist.sort(reverse=True, key=sortingFunction)
-
-    return partition(mylist, meetingLength)
+    
+    return shorten(partitionSeconds((mylist), meetingLength))
 
     # return meetingoptions
+
+# shortens to most likely times if necessary
+def shorten(myList):
+    
+    if len(myList) <= 10:
+        return myList
+    completeList = list()
+    num_people = myList[0][2]
+    total_start_time = 0
+    total_items = 0
+    for block in myList:
+        if block[2] == num_people:
+            total_start_time += block[0]
+            total_items += 1
+
+    average_start_time = total_start_time / total_items
+
+    for block in myList:
+        if block[2] == num_people:
+            completeList.append([block[0],block[1],block[2],abs(average_start_time - block[0])])
+
+    completeList.sort(reverse=False, key=betaSortingFunction)
+    
+
+    shortenedList = list()
+    for block in completeList:
+        if len(shortenedList) < 10:
+            sdt = str(datetime.fromtimestamp(mktime(gmtime(block[0]))).strftime("%Y-%m-%d %H:%M"))
+            shortenedList.append(sdt)
+
+    shortenedList.sort(reverse=True, key=sortingFunction)
+    return shortenedList
+
+def betaSortingFunction(item):
+    return item[3]
 
 def partition(freelist, meetingLength):
     meetingLength = int(meetingLength) * 60
@@ -145,6 +190,22 @@ def partition(freelist, meetingLength):
                 freeblock[0] += meetingLength
 
 
+    return meetingoptions
+
+def partitionSeconds(freelist, meetingLength):
+    meetingLength = int(meetingLength) * 60
+    meetingoptions = list();
+    for freeblock in freelist:
+        if len(freeblock[2]) >= 2:
+            end = freeblock[1]
+            while (end - freeblock[0] >= meetingLength):
+                freeblock[1] = freeblock[0] + meetingLength
+                
+                meetingoptions.append([freeblock[0], freeblock[1], freeblock[2]])
+
+                freeblock[0] += meetingLength
+
+    
     return meetingoptions
 
 

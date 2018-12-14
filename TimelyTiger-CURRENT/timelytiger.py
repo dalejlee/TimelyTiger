@@ -24,6 +24,9 @@ import os
 # working with Datetime and Time class
 import timeAlg
 import time
+from time import gmtime, strftime, mktime
+from datetime import datetime  
+from datetime import timedelta  
 
 
 # Processes entry in preparation for templateInfo
@@ -51,6 +54,15 @@ def credentials_to_dict(credentials):
 
 
 def create_event(service, title, location, starttime, endtime):
+    pdb.set_trace()
+    print "starttime is " 
+    print starttime
+    print "endtime is "
+    print endtime
+    # endtime = endtime[0:9] + '-' + endtime[11:15]
+    # t = datetime.strptime(endtime, '%Y-%m-%d-%H:%M')
+    # t = time.mktime(time.strptime(endtime, '%Y-%m-%d-%H:%M'))
+
     event = {
       'summary': title,
       'location': location,
@@ -72,6 +84,7 @@ def create_event(service, title, location, starttime, endtime):
 
     event = service.events().insert(calendarId='primary', body=event, sendUpdates='none').execute() # changed all to none
     print 'Event created: %s' % (event.get('htmlLink'))
+    return event.get('id')
 
     
 
@@ -109,8 +122,18 @@ def index():
 @app.route('/eventForm')
 def eventForm():
 
+            # Load credentials from the session.
+    credentials = google.oauth2.credentials.Credentials(
+        **flask.session['credentials'])
+
+    service = googleapiclient.discovery.build(
+        API_SERVICE_NAME, API_VERSION, credentials=credentials)
+    calendar = service.calendars().get(calendarId='primary').execute()
+
+    yEmail = calendar['id']
+
     eventName = remove_none(request.args.get('eventName'))
-    yEmail = remove_none(request.args.get('yEmail'))
+    # yEmail = remove_none(request.args.get('yEmail'))
     pEmail = remove_none(request.args.get('pEmail'))
     meetingLength = remove_none(request.args.get('meetingLength'))
     startdate = remove_none(request.args.get('startdate'))
@@ -134,7 +157,7 @@ def eventForm():
 def showTimes():
 
     eventName = remove_none(request.args.get('eventName'))
-    yEmail = remove_none(request.args.get('yEmail'))
+    # yEmail = remove_none(request.args.get('yEmail'))
     pEmail = remove_none(request.args.get('pEmail'))
     meetingLength = remove_none(request.args.get('meetingLength'))
     startdate = remove_none(request.args.get('startdate'))
@@ -142,6 +165,18 @@ def showTimes():
     place = remove_none(request.args.get('place'))
 
     # add set cookies
+
+        # Load credentials from the session.
+    credentials = google.oauth2.credentials.Credentials(
+        **flask.session['credentials'])
+
+    service = googleapiclient.discovery.build(
+        API_SERVICE_NAME, API_VERSION, credentials=credentials)
+    calendar = service.calendars().get(calendarId='primary').execute()
+
+    yEmail = calendar['id']
+    pdb.set_trace()
+
 
     # connect to database
     con=p.connect(dbname="sample_db", user="postgres", host="localhost", port="5431")
@@ -162,15 +197,7 @@ def showTimes():
         print('Database connection closed.')
     
 
-    # Load credentials from the session.
-    credentials = google.oauth2.credentials.Credentials(
-        **flask.session['credentials'])
 
-    service = googleapiclient.discovery.build(
-        API_SERVICE_NAME, API_VERSION, credentials=credentials)
-    calendar = service.calendars().get(calendarId='primary').execute()
-
-    email = calendar['id']
     timeMin = startdate
     timeMin += "T00:00:00.000-05:00"
     timeMax = enddate
@@ -200,6 +227,107 @@ def showTimes():
         'num_times': num_times}
     return template('timespage.tpl', templateInfo)
 
+@app.route('/pastEvents')
+def pastEvents():
+    
+    # Load credentials from the session.
+    credentials = google.oauth2.credentials.Credentials(
+        **flask.session['credentials'])
+
+    service = googleapiclient.discovery.build(
+        API_SERVICE_NAME, API_VERSION, credentials=credentials)
+    calendar = service.calendars().get(calendarId='primary').execute()
+    yEmail = calendar['id']
+
+    con=p.connect(dbname="sample_db", user="postgres", host="localhost", port="5431")
+    cur=con.cursor()
+
+    cur.execute("SELECT EVE_eventtitle, EVE_EventID FROM EVE_Events WHERE EVE_hostEmail = 'dalelee@princeton.edu'")
+    list_events = cur.fetchall()
+    num_events = len(list_events)
+
+    # num_events = ?
+    # list_events = ?
+    templateInfo = {
+        'events': list_events,
+        'num_events': num_events}
+    return template('pastEvents.tpl', templateInfo)
+
+@app.route('/pastEventDetails')
+def pastEventDetails():
+    pdb.set_trace()
+    eventid = request.args['eventid']
+
+    con=p.connect(dbname="sample_db", user="postgres", host="localhost", port="5431")
+    cur=con.cursor()
+
+    SQL = "SELECT EVE_location, EVE_eventtitle, EVE_hostEmail, EVE_partnerEmail, EVE_Minutes, EVE_StartRange, EVE_EndRange, EVE_Location, EVE_dateandtime FROM EVE_Events WHERE EVE_EventID = %s"
+
+    data = (eventid,)
+    cur.execute(SQL, data)
+
+    eventInfo = cur.fetchall()
+    eventInfo = eventInfo[0]
+    place = eventInfo[0]
+    eventtitle = eventInfo[1]
+    yEmail = eventInfo[2]
+    pEmail = eventInfo[3]
+    meetingLength = eventInfo[4]
+    startdate = eventInfo[5]
+    enddate = eventInfo[6]
+    place = eventInfo[7]
+    dateandtime = eventInfo[8]
+
+    templateInfo = {
+        'eventid': eventid,
+        'eventtitle': eventtitle,
+        'yEmail': yEmail,
+        'pEmail': pEmail,
+        'meetingLength': meetingLength,
+        'startdate': startdate,
+        'enddate': enddate,
+        'dateandtime': dateandtime,
+        'place': place}
+
+    return template('pastEventDetails.tpl', templateInfo)
+
+@app.route('/modifyEvent')
+def modifyEvent():
+    pdb.set_trace()
+    eventid = request.args['eventid']
+
+    con=p.connect(dbname="sample_db", user="postgres", host="localhost", port="5431")
+    cur=con.cursor()
+
+    SQL = "SELECT EVE_GoogleID FROM EVE_Events WHERE EVE_eventid = %s"
+
+    data = (eventid,)
+    cur.execute(SQL, data)
+
+    eventInfo = cur.fetchall()
+    eventInfo = eventInfo[0]
+    googleID = eventInfo[0]
+
+    cur.close()
+    if con is not None:
+        con.close()
+        print('Database connection closed.')
+
+    credentials = google.oauth2.credentials.Credentials(
+        **flask.session['credentials'])
+
+    service = googleapiclient.discovery.build(
+        API_SERVICE_NAME, API_VERSION, credentials=credentials)
+
+    event = service.events().get(calendarId='primary', eventId=googleID).execute()
+    event['summary'] = 'Appointment at Somewhere'
+    updated_event = service.events().update(calendarId='primary', eventId=event['id'], body=event).execute() # TODO: UPDATE DATABASE WITH NEW UPDATES, NOT JUST CALENDAR
+
+    templateInfo = {}
+
+    return template('updateEventSuccess.tpl', templateInfo)
+
+
 
 @app.route('/eventDetails')
 def eventDetails():
@@ -208,6 +336,14 @@ def eventDetails():
     time = request.args['time']
     
     # add get cookies feature
+
+    credentials = google.oauth2.credentials.Credentials(
+        **flask.session['credentials'])
+
+    service = googleapiclient.discovery.build(
+        API_SERVICE_NAME, API_VERSION, credentials=credentials)
+    calendar = service.calendars().get(calendarId='primary').execute()
+
 
     con=p.connect(dbname="sample_db", user="postgres", host="localhost", port="5431")
     cur=con.cursor()
@@ -237,9 +373,23 @@ def eventDetails():
     place = eventInfo[7]
     dateandtime = time
 
-    SQL = "UPDATE EVE_Events SET EVE_dateandtime = %s WHERE EVE_EventID = %s"
 
-    data = (dateandtime, eventid,)
+    # issue with creating event on calendar @Dale
+    # testTime = time.strptime('Jun 1 2005  1:33PM', '%b %d %Y %I:%M%p')
+    # meetTime = datetime.strptime(startdate1, '%Y-%m-%d %H:%M')
+    startdate1 = str(time)
+    startdateMod = startdate1[0:10] + 'T' + startdate1[11:19] + ':00-05:00'
+    enddateMod = timeAlg.createEndTime(startdate1, meetingLength)
+    # meetTime = timeAlg.convertToSecs(enddateMod)
+    # print meetTime
+    # endResult = timeAlg.convertToRFC(meetTime)
+    pdb.set_trace()
+    googleID = create_event(service, eventtitle, place, startdateMod, enddateMod)
+
+
+    SQL = "UPDATE EVE_Events SET EVE_dateandtime = %s, EVE_googleID = %s WHERE EVE_EventID = %s"
+
+    data = (dateandtime, googleID, eventid,)
     cur.execute(SQL, data)
 
     con.commit()
@@ -249,19 +399,9 @@ def eventDetails():
         con.close()
         print('Database connection closed.')
 
-    credentials = google.oauth2.credentials.Credentials(
-        **flask.session['credentials'])
 
-    service = googleapiclient.discovery.build(
-        API_SERVICE_NAME, API_VERSION, credentials=credentials)
-    calendar = service.calendars().get(calendarId='primary').execute()
 
-    # issue with creating event on calendar @Dale
-    startdate1 = str(startdate)
-    enddate1 = str(enddate)
-    startdateMod = startdate1[0:10] + 'T' + startdate1[12:19] + '-05:00'
-    enddateMod = enddate1[0:10] + 'T' + enddate1[12:19] + '-05:00'
-    # create_event(service, eventtitle, place, startdateMod, enddateMod)
+
 
     templateInfo = {
         'eventid': eventid,

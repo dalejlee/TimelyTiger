@@ -10,13 +10,6 @@
 					</td>
 				</tr>
 				<tr>
-					<td>Your Email:</td>
-					<td>
-						<input type="email" name ="yEmail" value="{{yEmail}}">
-						<br>
-					</td>
-				</tr>
-				<tr>
 					<td>Partner's Email:</td>
 					<td>
 						<input type="email" name ="pEmail" value="{{pEmail}}">
@@ -59,3 +52,6 @@
 				</tr>
 			</table>	
 		</form>
+<hr>
+
+<a href="/pastEvents">Click here to see past events!</a>
