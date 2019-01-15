@@ -31,12 +31,26 @@
                      <br><font style="font-size:12px">{{LoginPersonName}}</font>
                      <A style="font-size:8px" href="javascript:UpdateUserDateEdit('{{LoginPersonEmail}}','{{LoginPersonName}}','{{loginPersonPhotoLink}}');">edit</A>
                   </div>
-                  <div ID=EditUser style="visibility: hidden; display:none; width: 100%;">
-                     <br><input type="Name" id="EditUserName" value='{{LoginPersonName}}' style='width: 100%;'/>
-                     <br><input type="Photo Link" id="EditUserPhotoLink" value='{{loginPersonPhotoLink}}' style='width: 100%;'>
-                     <br><input type="button" onclick="UpdateUserDateSave('{{LoginPersonEmail}}')" value='save'>
-                     <input type="button" onclick="UpdateUserDateClose()" value='close'>
+                  <div ID=EditUser style="visibility: hidden; display:none;">
+                     <table style='width: 90%;'>
+                        <tr style='font-size:small;'>
+                           <td align=left style='width: 100%'>
+                              Display name
+                              <input type="Name" id="EditUserName" value='{{LoginPersonName}}' style='width: 100%;'/>
+                              <br><br>Display photo URL
+                              <input type="button" onclick="ClearUserPhotoLink()" value='Clear'>
+                              <input type="Photo Link" id="EditUserPhotoLink" value='{{loginPersonPhotoLink}}' style='width: 100%;'>
+                           </td>
+                           <tr>
+                              <td align=right >
+                                 <input type="button" onclick="UpdateUserDateSave('{{LoginPersonEmail}}')" value='save'>
+                                 <input type="button" onclick="UpdateUserDateClose()" value='close'>
+                              </td>
+                           </tr>
+                        </tr>
+                     </table>
                   </div>
+                  <input type="hidden" id="UserEmail" name="UserEmail" value="{{LoginPersonEmail}}">
                   <A style="font-size:12px" href="/authorize">Sign out</A>
                </td>
             </tr>
@@ -47,10 +61,17 @@
       <script src="https://apis.google.com/js/platform.js" async defer></script>
       <meta name="google-signin-client_id" content="899885585030-j4o4conctbnpmke5qqjekejufeo8lb70.apps.googleusercontent.com">
       <script>
+         function ClearUserPhotoLink()
+         {
+            document.getElementById("EditUserPhotoLink").value="";
+         }
+         function addUserEmail()
+         {
+            var UserEmail = document.getElementById("UserEmail").value;
+            return '&UserEmail='+UserEmail;
+         }
          function OnLoadBody()
          {
-            // setTimeout(function(){ alert("Hello 1"); }, 3000);
-            // setTimeout(function(){ alert("Hello 2"); }, 6000);
             RefreshAllEvents();
          }
          function UpdateUserDateClose()
@@ -73,7 +94,7 @@
             var EditUserPhotoLink = document.getElementById("EditUserPhotoLink").value;
 
             var messageId = Math.floor(Math.random(seed) * 1000000) + 1;
-            var url = "/UpdateUserData?messageId=" + messageId + "&Email=" + email + "&Name=" + EditUserName + "&PhotoLink=" + EditUserPhotoLink;
+            var url = "/UpdateUserData?messageId=" + messageId + "&Email=" + email + "&Name=" + EditUserName + "&PhotoLink=" + EditUserPhotoLink + addUserEmail();
 
             request.onreadystatechange = processReadyStateChange;
             request.open("GET", url);
@@ -155,6 +176,13 @@
             var DOMid=FullString.substring(0,FullString.indexOf(","));
             var HTMLPortion=FullString.substring(FullString.indexOf(",")+1,FullString.length);
 
+            // Force user to login, if commanded
+            if (DOMid=='ForceAuthorization')
+            {
+               alert("Sorry, you are already logged into Timely Tiger with a different account in this browser. We are logging out this account.");
+               window.location = "/authorize";
+            }
+
             // Update specific object
             var AllEventsTable = document.getElementById(DOMid);
             AllEventsTable.innerHTML = HTMLPortion;
@@ -203,6 +231,42 @@
                return;
             }
 
+            // Check for characters that will screw up the database or HTML
+            if(      EventLocation.indexOf("#")>-1 
+                  || EventLocation.indexOf("<")>-1 
+                  || EventLocation.indexOf(">")>-1 
+                  || EventLocation.indexOf("&")>-1 
+                  || EventLocation.indexOf("*")>-1
+                  || EventLocation.indexOf("'")>-1
+                  )
+            {
+               alert("Characters #, >, <, &, * or ' are not allowed in the Location field");
+               return;               
+            }
+            if(      EventDescription.indexOf("#")>-1 
+                  || EventDescription.indexOf("<")>-1 
+                  || EventDescription.indexOf(">")>-1 
+                  || EventDescription.indexOf("&")>-1 
+                  || EventDescription.indexOf("*")>-1
+                  || EventDescription.indexOf("'")>-1
+                  )
+            {
+               alert("Characters #, >, <, &, * or ' are not allowed in the event description field");
+               return;               
+            }
+            if(      EventTitle.indexOf("#")>-1 
+                  || EventTitle.indexOf("<")>-1 
+                  || EventTitle.indexOf(">")>-1  
+                  || EventTitle.indexOf("&")>-1 
+                  || EventTitle.indexOf("*")>-1
+                  || EventTitle.indexOf("'")>-1
+                  )
+            {
+               alert("Characters #, >, <, &, * or ' are not allowed in the event title field");
+               return;               
+            }
+
+
             // getting timezone
             // var curdate = new Date();
             // var dOffset = curdate.getTimezoneOffset();
@@ -210,90 +274,12 @@
 
             // Construct our request and send
             var messageId = Math.floor(Math.random(seed) * 1000000) + 1;
-            var url = "/ScheduleEvent?messageId=" + messageId + "&TigerEventID=" + TigerEventID + "&EventTitle=" + EventTitle + "&EventDescription=" + EventDescription + "&EventLength=" + EventLength + "&EventLocation=" + EventLocation + addTimeZone();
+            var url = "/ScheduleEvent?messageId=" + messageId + "&TigerEventID=" + TigerEventID + "&EventTitle=" + EventTitle + "&EventDescription=" + EventDescription + "&EventLength=" + EventLength + "&EventLocation=" + EventLocation + addTimeZone() + addUserEmail();
 
             request.onreadystatechange = processReadyStateChange;
             request.open("GET", url);
             request.send(null);
          }
-         function DeleteEvent(TigerEventID)
-         {
-            request = createAjaxRequest();
-            if (request == null) return;
-
-            // Construct our request and send
-            var messageId = Math.floor(Math.random(seed) * 1000000) + 1;
-            var url = "/DeleteEvent?messageId=" + messageId + "&TigerEventID=" + TigerEventID + addTimeZone();;
-
-            request.onreadystatechange = processReadyStateChange;
-            request.open("GET", url);
-            request.send(null);
-         }
-         function SetTigerRefreshTimer(TigerEventID)
-         {
-            // Refresh this event in about 20 seconds.
-            // creat variability based upon event id so that
-            // all events don't refresh at the same time
-            mseconds=40000+(TigerEventID-100)*1000
-            setTimeout(function(){RefreshEvent(TigerEventID);}, mseconds)       
-         }
-         function RefreshEvent(TigerEventID)
-         {
-            // Check for a DOM object that is present only in event detail model...
-            var EventAttendeesObject = document.getElementById("EventAttendees"+ TigerEventID);
-            if(EventAttendeesObject)
-            {
-               // This is event is in detail model. So, cause a refresh of only attendees.
-               // When attendees refresh, a new timer event will be created by loading an attendee picture
-
-               //var messageId = Math.floor(Math.random(seed) * 1000000) + 1;
-               //var url = "/RefreshAttendees?messageId=" + messageId + "&TigerEventID=" + TigerEventID;
-               var url = "/RefreshAttendeesDetailView?TigerEventID=" + TigerEventID;
-               request.onreadystatechange = processReadyStateChange;
-               request.open("GET", url);
-               request.send(null);
-            }
-            else
-            {
-               // No EventAttendees control, the event must be in summary mode. 
-               // Refresh the whole event (CloseEVent causes a refresh). A new timer
-               // event will be created when attendee picture is loaded
-               request = createAjaxRequest();
-               if (request == null) return;
-
-               // Construct our request and send
-               var url = "/RefreshEventSummaryView?TigerEventID=" + TigerEventID + addTimeZone();
-               request.onreadystatechange = processReadyStateChange;
-               request.open("GET", url);
-               request.send(null);
-            }
-         }
-         function CloseEvent(TigerEventID)
-         {
-            request = createAjaxRequest();
-            if (request == null) return;
-
-            // Construct our request and send
-            var messageId = Math.floor(Math.random(seed) * 1000000) + 1;
-            var url = "/CloseEvent?messageId=" + messageId + "&TigerEventID=" + TigerEventID + addTimeZone();
-
-            request.onreadystatechange = processReadyStateChange;
-            request.open("GET", url);
-            request.send(null);
-         } 
-         function UnscheduleEvent(TigerEventID)
-         {
-            request = createAjaxRequest();
-            if (request == null) return;
-
-            // Construct our request and send
-            var messageId = Math.floor(Math.random(seed) * 1000000) + 1;
-            var url = "/UnscheduleEvent?messageId=" + messageId + "&TigerEventID=" + TigerEventID + addTimeZone();
-
-            request.onreadystatechange = processReadyStateChange;
-            request.open("GET", url);
-            request.send(null);
-         } 
          function SaveEvent(TigerEventID)
          {
             request = createAjaxRequest();
@@ -322,9 +308,44 @@
                return;
             }
 
+            // Check for characters that will screw up the database or HTML
+            if(      EventLocation.indexOf("#")>-1 
+                  || EventLocation.indexOf("<")>-1 
+                  || EventLocation.indexOf(">")>-1 
+                  || EventLocation.indexOf("&")>-1 
+                  || EventLocation.indexOf("*")>-1
+                  || EventLocation.indexOf("'")>-1
+                  )
+            {
+               alert("Characters #, >, <, &, * or ' are not allowed in the Location field");
+               return;               
+            }
+            if(      EventDescription.indexOf("#")>-1 
+                  || EventDescription.indexOf("<")>-1 
+                  || EventDescription.indexOf(">")>-1 
+                  || EventDescription.indexOf("&")>-1 
+                  || EventDescription.indexOf("*")>-1
+                  || EventDescription.indexOf("'")>-1 
+                  )
+            {
+               alert("Characters #, >, <, &, * or ' are not allowed in the event description field");
+               return;               
+            }
+            if(      EventTitle.indexOf("#")>-1 
+                  || EventTitle.indexOf("<")>-1 
+                  || EventTitle.indexOf(">")>-1 
+                  || EventTitle.indexOf("&")>-1 
+                  || EventTitle.indexOf("*")>-1
+                  || EventTitle.indexOf("'")>-1
+                  )
+            {
+               alert("Characters #, >, <, &, * or ' are not allowed in the event title field");
+               return;               
+            }
+
             // Construct our request and send
             var messageId = Math.floor(Math.random(seed) * 1000000) + 1;
-            var url = "/SaveEvent?messageId=" + messageId + "&TigerEventID=" + TigerEventID + "&EventTitle=" + EventTitle + "&EventDescription=" + EventDescription + "&EventLength=" + EventLength + "&EventLocation=" + EventLocation  + addTimeZone();
+            var url = "/SaveEvent?messageId=" + messageId + "&TigerEventID=" + TigerEventID + "&EventTitle=" + EventTitle + "&EventDescription=" + EventDescription + "&EventLength=" + EventLength + "&EventLocation=" + EventLocation  + addTimeZone() + addUserEmail();
 
             request.onreadystatechange = processReadyStateChange;
             request.open("GET", url);
@@ -334,7 +355,86 @@
             //var EventRowToEdit = document.getElementById(ID);
             //RowString ="<td>Peoples pics go here</td><td>TimelyTiger requirments event number " + TigerEventID + "<button onclick='EditEvent(" + TigerEventID + ")'>edit</button></td><td>2 hours</td><td>Dec 17, 2018, 8PM</td><td>Repeat<br>Cancel</td>";
             //EventRowToEdit.innerHTML = RowString;
-         }         
+         }   
+         function DeleteEvent(TigerEventID)
+         {
+            request = createAjaxRequest();
+            if (request == null) return;
+
+            // Construct our request and send
+            var messageId = Math.floor(Math.random(seed) * 1000000) + 1;
+            var url = "/DeleteEvent?messageId=" + messageId + "&TigerEventID=" + TigerEventID + addTimeZone() + addUserEmail();
+
+            request.onreadystatechange = processReadyStateChange;
+            request.open("GET", url);
+            request.send(null);
+         }
+         function SetTigerRefreshTimer(TigerEventID)
+         {
+            // Refresh this event in about 20 seconds.
+            // creat variability based upon event id so that
+            // all events don't refresh at the same time
+            mseconds=40000+(TigerEventID-100)*1000
+            setTimeout(function(){RefreshEvent(TigerEventID);}, mseconds)       
+         }
+         function RefreshEvent(TigerEventID)
+         {
+            // Check for a DOM object that is present only in event detail model...
+            var EventAttendeesObject = document.getElementById("EventAttendees"+ TigerEventID);
+            if(EventAttendeesObject)
+            {
+               // This is event is in detail model. So, cause a refresh of only attendees.
+               // When attendees refresh, a new timer event will be created by loading an attendee picture
+
+               //var messageId = Math.floor(Math.random(seed) * 1000000) + 1;
+               //var url = "/RefreshAttendees?messageId=" + messageId + "&TigerEventID=" + TigerEventID;
+               var url = "/RefreshAttendeesDetailView?TigerEventID=" + TigerEventID + addUserEmail();
+               request.onreadystatechange = processReadyStateChange;
+               request.open("GET", url);
+               request.send(null);
+            }
+            else
+            {
+               // No EventAttendees control, the event must be in summary mode. 
+               // Refresh the whole event (CloseEVent causes a refresh). A new timer
+               // event will be created when attendee picture is loaded
+               request = createAjaxRequest();
+               if (request == null) return;
+
+               // Construct our request and send
+               var url = "/RefreshEventSummaryView?TigerEventID=" + TigerEventID + addTimeZone() + addUserEmail();
+               request.onreadystatechange = processReadyStateChange;
+               request.open("GET", url);
+               request.send(null);
+            }
+         }
+         function CloseEvent(TigerEventID)
+         {
+            request = createAjaxRequest();
+            if (request == null) return;
+
+            // Construct our request and send
+            var messageId = Math.floor(Math.random(seed) * 1000000) + 1;
+            var url = "/CloseEvent?messageId=" + messageId + "&TigerEventID=" + TigerEventID + addTimeZone() + addUserEmail();
+
+            request.onreadystatechange = processReadyStateChange;
+            request.open("GET", url);
+            request.send(null);
+         } 
+         function UnscheduleEvent(TigerEventID)
+         {
+            request = createAjaxRequest();
+            if (request == null) return;
+
+            // Construct our request and send
+            var messageId = Math.floor(Math.random(seed) * 1000000) + 1;
+            var url = "/UnscheduleEvent?messageId=" + messageId + "&TigerEventID=" + TigerEventID + addTimeZone() + addUserEmail();
+
+            request.onreadystatechange = processReadyStateChange;
+            request.open("GET", url);
+            request.send(null);
+         } 
+               
          function EditEvent(TigerEventID)
          {
             // Abort any pending requests
@@ -347,7 +447,7 @@
 
             // Construct our request and send
             var messageId = Math.floor(Math.random(seed) * 1000000) + 1;
-            var url = "/EditEvent?messageId=" + messageId + "&TigerEventID=" + TigerEventID + addTimeZone();
+            var url = "/EditEvent?messageId=" + messageId + "&TigerEventID=" + TigerEventID + addTimeZone() + addUserEmail();
 
             request.onreadystatechange = processReadyStateChange;
             request.open("GET", url);
@@ -370,7 +470,7 @@
             
             // Construct our request and send
             var messageId = Math.floor(Math.random(seed) * 1000000) + 1;
-            var url = "/CreateNewEvent?messageId=" + messageId  + addTimeZone();
+            var url = "/CreateNewEvent?messageId=" + messageId  + addTimeZone() + addUserEmail();
 
             request.onreadystatechange = processReadyStateChange;
             request.open("GET", url);
@@ -392,7 +492,7 @@
 
             // Construct our request and send
             var messageId = Math.floor(Math.random(seed) * 1000000) + 1;
-            var url = "/RefreshAllEvents?messageId=" + messageId + addTimeZone();
+            var url = "/RefreshAllEvents?messageId=" + messageId + addTimeZone() + addUserEmail();
 
             request.onreadystatechange = processReadyStateChange;
             request.open("GET", url);
@@ -409,13 +509,22 @@
             if (request == null) return;
 
             var messageId = Math.floor(Math.random(seed) * 1000000) + 1;
-            var url = "/DeleteAttendee?messageId=" + messageId + "&TigerEventID=" + TigerEventID + "&AttendeeEmail=" + attendeeEmail ;
+            var url = "/DeleteAttendee?messageId=" + messageId + "&TigerEventID=" + TigerEventID + "&AttendeeEmail=" + attendeeEmail  + addUserEmail();
 
             request.onreadystatechange = processReadyStateChange;
             request.open("GET", url);
             request.send(null);
 
             GetSuggestedTimes(TigerEventID);
+         }
+         function ValidateEmail(mail) 
+         {
+            if (/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(mail))
+            {
+               return (true)
+            }
+            alert("Nonconforming email")
+            return (false)
          }
          function AddAttendee(TigerEventID)
          {
@@ -429,8 +538,11 @@
             if(NewAttendeeEmail.length=="")
                return;
 
+            if(!ValidateEmail(NewAttendeeEmail))
+               return;
+
             var messageId = Math.floor(Math.random(seed) * 1000000) + 1;
-            var url = "/AddAttendee?messageId=" + messageId + "&TigerEventID=" + TigerEventID + "&NewAttendeeEmail=" + NewAttendeeEmail ;
+            var url = "/AddAttendee?messageId=" + messageId + "&TigerEventID=" + TigerEventID + "&NewAttendeeEmail=" + NewAttendeeEmail  + addUserEmail();
 
             request.onreadystatechange = processReadyStateChange;
             request.open("GET", url);
@@ -473,7 +585,7 @@
                      + "&BeginDateTime=" + BeginDateTime 
                      + "&EndDateTime=" + EndDateTime 
                      + "&EventLength=" + EventLength
-                     + addTimeZone();
+                     + addTimeZone() + addUserEmail();
 
             request.onreadystatechange = processReadyStateChange;
             request.open("GET", url);
@@ -530,7 +642,7 @@
                      + "&BeginDateTime=" + BeginDateTime
                      + "&EndDateTime=" + EndDateTime 
                      + "&EventLength=" + EventLength
-                     + addTimeZone();
+                     + addTimeZone() + addUserEmail();
 
             request.onreadystatechange = processReadyStateChange;
             request.open("GET", url);

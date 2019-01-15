@@ -20,8 +20,10 @@ def timeAlgorithm(file, people, start_date, end_date, meeting_length, offset, li
     start_of_end = end_time - end_hour - end_minute
     
     # List of busy times, indexed for each person 
-    avs = list() 
+    avs = list()
+    num_people = 0
     for person in people:
+        num_people += 1
         avs.append(dataToAvs(file, person, offset))
 
     # Convert busy times to free times
@@ -29,7 +31,7 @@ def timeAlgorithm(file, people, start_date, end_date, meeting_length, offset, li
     free_list.sort(reverse=True, key=sortingFunction)
     
     # Partition and trim free_list
-    my_list = partitionSeconds((free_list), meeting_length)
+    my_list = partitionSeconds((free_list), meeting_length, num_people)
     return shorten(my_list, offset, start_time, end_time, limit, start_of_day, start_of_end)
 
 #------------------------------------------------------------------------------------------#
@@ -87,26 +89,42 @@ def is_free(time, ranges):
 def sortingFunction(item):
     return len(item[2])
 
+# Returns number of minutes remaining from Unix/Epoch timestamp
+def getMinutes(time_in_seconds):
+    return (time_in_seconds%3600)/60
+
 # Partitions list of free times into list of smaller free blocks. Returns list of tuples containing
 # Index 0: int_start_time; Index 1: int_end_time; Index 2: list_people
-def partitionSeconds(freelist, meetingLength):
-    meetingLength = int(meetingLength) * 60
-    meetingoptions = list()
+def partitionSeconds(freelist, meetingLength, num_people):
     
+    meetingoptions = list()
+    meetingLength = int(meetingLength) * 60
     for freeblock in freelist:
-        if len(freeblock[2]) >= 2:
-            end = freeblock[1]
+        # Round time if needed
+        minutes = getMinutes(freeblock[0])
+        if minutes > 30:
+            freeblock[0] += (60 - minutes) * 60
+        elif minutes > 0:
+            freeblock[0] += (30 - minutes) * 60
+            
+        # If everyone can attend, partition the chunk into smaller blocks
+        if len(freeblock[2]) == num_people:
+            end = freeblock[1]     
             while (end - freeblock[0] >= meetingLength):
                 freeblock[1] = freeblock[0] + meetingLength
                 meetingoptions.append([freeblock[0], freeblock[1], freeblock[2]])
+                # Subsequent times not affect by remaining minutes of the first block
+                minutes = getMinutes(freeblock[0])
+                if (minutes == 30) and ((meetingLength/60) >= 60):
+                    freeblock[0] += (minutes*60)
+                    continue
                 freeblock[0] += meetingLength
- 
+                
     return meetingoptions
 
 # Shortens the list down to the limit if needed
 def shorten(myList, offset, start_time, end_time, limit, start_of_day, start_of_end):
     completeList = list()
-    num_people = myList[0][2]
 
     # Pref between 6am and 9pm. 48600 seconds is 13.5 hours
     pref_offset = 48600
@@ -116,21 +134,19 @@ def shorten(myList, offset, start_time, end_time, limit, start_of_day, start_of_
     # Numerical representation of the start of each day in range
     day_list = list()
     i = start_of_day
-    #print i
     while (i <= start_of_end):
         day_list.append(i)
         i += 86400
         
     # Sort the list by preferred times 
     for block in myList:
-        if block[2] == num_people:
-            var = abs((i/2) + pref_offset - block[0])
-            for time in day_list:
-                if (block[0] >= time + six_am_offset) and (block[0] <= time + nine_pm_offset):
-                    #print "Pref time found!"
-                    var = abs(time + pref_offset - block[0])
-                    break
-            completeList.append([block[0],block[1],block[2],var])
+        #if block[2] == num_people:
+        var = abs((i/2) + pref_offset - block[0])
+        for time in day_list:
+            if (block[0] >= time + six_am_offset) and (block[0] <= time + nine_pm_offset):
+                var = abs(time + pref_offset - block[0])
+                break
+        completeList.append([block[0],block[1],block[2],var])
 
     completeList.sort(reverse=False, key=betaSortingFunction)
 

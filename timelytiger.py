@@ -64,10 +64,10 @@ CLIENT_SECRETS_FILE = "client_secret_899885585030-j4o4conctbnpmke5qqjekejufeo8lb
 
 # THINGS TO CHANGE UPON DEPLOYMENT....
 #-------------------------------------
-APPLICATION_LOCATION='HEROKU' # 'HEROKU' vs 'LOCAL'# <<<< CHANGE WHEN DEPLOYT TO HEROKU
-TIMELY_TIGER_VERSION="2.16.16"
+APPLICATION_LOCATION='HEROKU' # 'HEROKU' vs 'LOCAL'#
+TIMELY_TIGER_VERSION="2.24"
 SIMULATE_MOBILE='No' # 'No' 'Yes'
-DISABLE_AUTO_REFRESH='No'  # stop refresh durring breakpoint debugging
+DISABLE_AUTO_REFRESH='No'  # stop refresh when debugging
 
 
 UNKNOWN_PERSON_PHOTO_URL="https://artprojectsforkids.org/wp-content/uploads/2016/10/Draw-a-Tiger-Face.jpg"
@@ -124,7 +124,7 @@ TEMPLATE_PATH.insert(0, '')
 
 @app.route('/')
 @app.route('/eventForm')
-def search():
+def eventForm():
 
     # Try to get credintials silently, else direct to login page....
 
@@ -186,6 +186,11 @@ def RefreshAttendeesDetailView():
     # If the event is scheduled, refresh will set the SetTigerRefreshTimer
     # which will cause perpetual refreshes
 
+    if UserLoggedInWithAnotherAccount():
+        return 'ForceAuthorization,No HTML' # Send a message to processReadyStateChange()
+        #--- FORCE LOGIN ----->
+
+
     TigerEventID=request.args.get('TigerEventID')
     UpdateAttendeesOneEvent(TigerEventID)
     Event=getDBEventDetails(TigerEventID,0)
@@ -200,6 +205,11 @@ def RefreshEventSummaryView():
     # If the event is scheduled, refresh will set the SetTigerRefreshTimer
     # which will cause perpetual refreshes
 
+    if UserLoggedInWithAnotherAccount():
+        return 'ForceAuthorization,No HTML' # Send a message to processReadyStateChange()
+        #--- FORCE LOGIN ----->
+
+
     TigerEventID=request.args.get('TigerEventID')
     timezone=request.args.get('tz')
 
@@ -213,6 +223,12 @@ def RefreshEventSummaryView():
 
 @app.route('/UpdateUserData')
 def UpdateUserData():
+
+    if UserLoggedInWithAnotherAccount():
+        return 'ForceAuthorization,No HTML' # Send a message to processReadyStateChange()
+        #--- FORCE LOGIN ----->
+
+
     # Add attendee to event
     email=request.args.get('Email').lower()
     name=request.args.get('Name')
@@ -230,6 +246,12 @@ def server_static(filename):
 
 @app.route('/DeleteAttendee')
 def DeleteAttendee():
+
+    if UserLoggedInWithAnotherAccount():
+        return 'ForceAuthorization,No HTML' # Send a message to processReadyStateChange()
+        #--- FORCE LOGIN ----->
+
+
     # Add attendee to event
     TigerEventID=request.args.get('TigerEventID')
     AttendeeEmail=request.args.get('AttendeeEmail').lower()
@@ -239,10 +261,20 @@ def DeleteAttendee():
 
 @app.route('/AddAttendee')
 def AddAttendeet():
+
+    if UserLoggedInWithAnotherAccount():
+        return 'ForceAuthorization,No HTML' # Send a message to processReadyStateChange()
+        #--- FORCE LOGIN ----->
+
     # Add attendee to event
     TigerEventID=request.args.get('TigerEventID')
     NewAttendeeEmail=request.args.get('NewAttendeeEmail').lower()
-    updateDBEventAddAttendee(TigerEventID,NewAttendeeEmail)
+    UserEmailFromClient=request.args.get('UserEmail').lower()
+
+    # Try adding to event if the user is not adding themselves..
+    if UserEmailFromClient != NewAttendeeEmail:
+        updateDBEventAddAttendee(TigerEventID,NewAttendeeEmail)
+
     # return new HTML for the EventAttendees table
     return ("EventAttendees" + str(TigerEventID) + "," + AttendeesAndStatusAsHTML(2,TigerEventID,None))
 
@@ -250,6 +282,11 @@ def AddAttendeet():
 
 @app.route('/SaveEvent')
 def SaveEvent():
+
+    if UserLoggedInWithAnotherAccount():
+        return 'ForceAuthorization,No HTML' # Send a message to processReadyStateChange()
+        #--- FORCE LOGIN ----->
+
 
     TigerEventID=request.args.get('TigerEventID')
     timezone=request.args.get('tz')
@@ -271,6 +308,11 @@ def SaveEvent():
 @app.route('/CloseEvent')
 def CloseEvent():
 
+    if UserLoggedInWithAnotherAccount():
+        return 'ForceAuthorization,No HTML' # Send a message to processReadyStateChange()
+        #--- FORCE LOGIN ----->
+
+
     TigerEventID=request.args.get('TigerEventID')
     timezone=request.args.get('tz')
 
@@ -283,6 +325,11 @@ def CloseEvent():
 
 @app.route('/ScheduleEvent')
 def ScheduleEvent():
+
+    if UserLoggedInWithAnotherAccount():
+        return 'ForceAuthorization,No HTML' # Send a message to processReadyStateChange()
+        #--- FORCE LOGIN ----->
+
 
     TigerEventID=request.args.get('TigerEventID')
     timezone=request.args.get('tz')
@@ -311,6 +358,11 @@ def ScheduleEvent():
 @app.route('/UnscheduleEvent')
 def UnscheduleEvent():
 
+    if UserLoggedInWithAnotherAccount():
+        return 'ForceAuthorization,No HTML' # Send a message to processReadyStateChange()
+        #--- FORCE LOGIN ----->
+
+
     TigerEventID=request.args.get('TigerEventID')
     timezone=request.args.get('tz')
 
@@ -322,6 +374,11 @@ def UnscheduleEvent():
 
 @app.route('/DeleteEvent')
 def DeleteEvent():
+
+    if UserLoggedInWithAnotherAccount():
+        return 'ForceAuthorization,No HTML' # Send a message to processReadyStateChange()
+        #--- FORCE LOGIN ----->
+
 
     TigerEventID=request.args.get('TigerEventID')
     timezone=request.args.get('tz')
@@ -350,17 +407,10 @@ def DeleteEvent():
                 <th align='left'>Action</th>\
             </tr>"
 
-    # Next, get the UerID from the session...
-    credentials = google.oauth2.credentials.Credentials(
-        **flask.session['credentials'])
-
-    service = googleapiclient.discovery.build(
-        API_SERVICE_NAME, API_VERSION, credentials=credentials)
-    calendar = service.calendars().get(calendarId='primary').execute()
-    user = str(calendar['id'])
 
 
     # Using the UserID get all events...
+    user=request.args.get('UserEmail').lower()
     eventIDs = getDBUsersEventIDs(user)
     for eventID in eventIDs:
         Event = getDBEventDetails(eventID,timezone)
@@ -370,6 +420,12 @@ def DeleteEvent():
 
 @app.route('/EditEvent')
 def EditEvent():
+
+    if UserLoggedInWithAnotherAccount():
+        return 'ForceAuthorization,No HTML' # Send a message to processReadyStateChange()
+        #--- FORCE LOGIN ----->
+
+
     TigerEventID=request.args.get('TigerEventID')
     timezone=request.args.get('tz')
 
@@ -383,6 +439,7 @@ def EditEvent():
 @app.route('/CreateNewEvent')
 def CreateNewEvent():
 
+    #pdb.set_trace()
     # Load credentials from the session.
     credentials = google.oauth2.credentials.Credentials(
         **flask.session['credentials'])
@@ -393,6 +450,14 @@ def CreateNewEvent():
 
     # need to send email etc. to display at top of template
     user = str(calendar['id']).lower()
+
+    # Send user to login screen if emails don't match...
+    # (user is logged in with different accounts at the same time in the same browser)
+    UserEmailFromClient=request.args.get('UserEmail')
+    if str(UserEmailFromClient).lower() != str(user).lower():
+        return 'ForceAuthorization,No HTML' # Send a message to processReadyStateChange()
+        #--- FORCE LOGIN ----->
+
 
     # Times will be entered in DB as UTC. Need to subtract time zone to look like now
     # now, when we read them back below
@@ -456,18 +521,12 @@ def CreateNewEvent():
 @app.route('/RefreshAllEvents')
 def RefreshAllEvents():
 
-    # Load credentials from the session.
-    credentials = google.oauth2.credentials.Credentials(
-        **flask.session['credentials'])
-
-    service = googleapiclient.discovery.build(
-        API_SERVICE_NAME, API_VERSION, credentials=credentials)
-    calendar = service.calendars().get(calendarId='primary').execute()
-
-    # need to get all user's events
-    user = str(calendar['id']).lower()
+    if UserLoggedInWithAnotherAccount():
+        return 'ForceAuthorization,No HTML' # Send a message to processReadyStateChange()
+        #--- FORCE LOGIN ----->
 
     # Get up-to-date status on all attendees to all events
+    user=request.args.get('UserEmail').lower()
     UpdateAttendeesAllEvents(user)
 
     # Begin with the header row...
@@ -514,6 +573,10 @@ def RefreshAllEvents():
 @app.route('/GetSuggestedTimes')
 def GetSuggestedTimes():
 
+    if UserLoggedInWithAnotherAccount():
+        return 'ForceAuthorization,No HTML' # Send a message to processReadyStateChange()
+        #--- FORCE LOGIN ----->
+
     #pdb.set_trace()
     TigerEventID=request.args.get('TigerEventID')
     BeginDateTime=request.args.get('BeginDateTime')
@@ -527,7 +590,11 @@ def GetSuggestedTimes():
 
 @app.route('/SubmittSelectedTime')
 def SubmittSelectedTime():
-    #pdb.set_trace()
+
+    if UserLoggedInWithAnotherAccount():
+        return 'ForceAuthorization,No HTML' # Send a message to processReadyStateChange()
+        #--- FORCE LOGIN ----->
+
     TigerEventID=request.args.get('TigerEventID')
     SelectedTime=request.args.get('SelectedTime')
 
@@ -568,6 +635,7 @@ def authorize():
 
     return flask.redirect(authorization_url)
 
+
 # more redirection
 @app.route('/oauth2callback')
 def oauth2callback():
@@ -602,6 +670,35 @@ def oauth2callback():
 
 # END OF HTML ROUTING
 #---------------------
+
+
+def UserLoggedInWithAnotherAccount():
+
+    # Timely Tiger does not support concurrent login
+    # with different accounts. This can be detected
+    # when google credentails do not match
+    # user information in the client. Signal that
+    # the user should be sent to login screen
+    # if missmatch occurs
+
+    # Load credentials from the session.
+    credentials = google.oauth2.credentials.Credentials(
+        **flask.session['credentials'])
+
+    service = googleapiclient.discovery.build(
+        API_SERVICE_NAME, API_VERSION, credentials=credentials)
+    calendar = service.calendars().get(calendarId='primary').execute()
+
+    # need to get all user's events
+    user = str(calendar['id']).lower()
+
+    # Send user to login screen if emails don't match...
+    # (user is logged in with different accounts at the same time in the same browser)
+    UserEmailFromClient=request.args.get('UserEmail')
+    if str(UserEmailFromClient).lower() != str(user).lower():
+        return True # user logged in with a different account
+    else:
+        return False # No crediential missmatch
 
 
 def credentials_to_dict(credentials):
@@ -678,130 +775,65 @@ def SuggestedTimesHTML(EventID,BeginDateTime,EndDateTime,EventLength,offset):
         for Attendee in AttendeeList:
             listAttendees.append({"id":str(Attendee["email"])})
             people.append(str(Attendee["email"]))
-    
-        # offset is in hours. Format manually since we cannot rely upon Python
-        # we need to form exactly this format: 2019-01-09T08:00:00-05:00
-        # BeginDateTime and EndDateTime are in this format: 2019-01-08T08:00
-        # So, we need to added :00-05:00
-        # timezonestring = ":00-0" + str(offset) + ":00"
-        # BeginDateTime+=timezonestring
-        # EndDateTime+=timezonestring
-        #
-        # formats accepted by google, see examples 5.8 examples https://tools.ietf.org/html/rfc3339#page-10
-        #   1985-04-12T23:20:50.52Z
-        #   1996-12-19T16:39:57-08:00
-        # the second is equivalent to 
-        #   1996-12-20T00:39:57Z
 
-        # BeginDateTime='2019-01-10T08:00:00.00Z'
-        # EndDateTime='2019-01-13T08:00:00.00Z'
-
-        #pdb.set_trace()
-        # BeginDateTime='2019-01-10T08:00:00Z'
-        # EndDateTime='2019-01-13T08:00:00Z'
-
-
-        #snow = now.isoformat()
-        # body = {
-        #       "timeMin": BeginDateTime + ':00-08:00',
-        #       "timeMax": EndDateTime + ':00-08:00',
-        #       "items": listAttendees,
-        # } 
-        # this one does not cause errors!
-        #pdb.set_trace()
-
-        # change from Unicde if any...
-        BeginDateTime=str(BeginDateTime)
-        EndDateTime=str(EndDateTime)
+        # Convert to UTC and correct format
+        dtStartRange = datetime.strptime(str(BeginDateTime),'%Y-%m-%dT%H:%M')+timedelta(minutes=offset/60)
+        dtEndRange = datetime.strptime(str(EndDateTime),'%Y-%m-%dT%H:%M')+timedelta(minutes=offset/60)
+        sBeginDateTime = dtStartRange.strftime("%Y-%m-%dT%H:%M") + ":00Z"
+        sEndDateTime = dtEndRange.strftime("%Y-%m-%dT%H:%M") + ":00Z"
         body = {
-              "timeMin": BeginDateTime + ':00Z',
-              "timeMax": EndDateTime + ':00Z',
+              "timeMin": sBeginDateTime,
+              "timeMax": sEndDateTime,
               "items": listAttendees,
               "timeZone": "UTC"
-        } 
+        }
+
+        # # change from Unicde if any...
+        # BeginDateTime=str(BeginDateTime)
+        # EndDateTime=str(EndDateTime)
         # body = {
-        #       "timeMin": BeginDateTime,
-        #       "timeMax": EndDateTime,
-        #       "items": listAttendees
-        # } 
-        # body = {
-        #       "timeMin": BeginDateTime+":00",
-        #       "timeMax": EndDateTime+":00",
-        #       "timeZone": "UTC",
-        #       "items": listAttendees
-        # }        
-        # body = {
-        #       "timeMin": BeginDateTime+":00.000"+timeAlg.timeZoneString(offset),
-        #       "timeMax": EndDateTime+":00.000"+timeAlg.timeZoneString(offset),
-        #       "items": listAttendees
+        #       "timeMin": BeginDateTime + ':00Z',
+        #       "timeMax": EndDateTime + ':00Z',
+        #       "items": listAttendees,
+        #       "timeZone": "UTC"
         # }
 
-        # body = {
-        #       "timeMin": BeginDateTime+":00.000-05:00",
-        #       "timeMax": EndDateTime+":00.000-05:00",
-        #       "timeZone": "America/New_York",
-        #       "items": listAttendees
-        # }
-
-        # body = {
-        #       "timeMin": BeginDateTime+":00.000-05:00",
-        #       "timeMax": EndDateTime+":00.000-05:00",
-        #       "timeZone": "America/New_York",
-        #       "items": [{"id": yEmail},
-        #                 {"id": pEmail}]
-        # }
-        #pdb.set_trace()
-
-        #return str(body) # <- DEBUG DEBUG DEBUG
-        #pdb.set_trace()
+    
         eventsResult = service.freebusy().query(body=body).execute()
-        # try:
-        #     eventsResult = service.freebusy().query(body=body).execute()
-        # except:
-        #     return "Error service.freebusy().query, body=" + str(body)
-        #pdb.set_trace()
-
-        #test = mktime(strptime(BeginDateTime, '%Y-%m-%dT%H:%M'))
         
         # put input into json format
         dumped = json.dumps(eventsResult)
         loadInfo = json.loads(dumped)
 
 
-        #people = [yEmail, pEmail]
-        # startdate = time.mktime(time.strptime(str(BeginDateTime[0:10]), '%Y-%m-%d'))
-        # enddate = time.mktime(time.strptime(str(EndDateTime[0:10]), '%Y-%m-%d'))
-        #startdate = time.mktime(time.strptime(str(BeginDateTime), '%Y-%m-%dT%H:%M'))
-        #enddate = time.mktime(time.strptime(str(EndDateTime), '%Y-%m-%dT%H:%M'))
 
         #pdb.set_trace()
         list_times = timeAlg.timeAlgorithm(loadInfo, people, BeginDateTime, EndDateTime, str(EventLength), offset)
-        # try:
-        #     list_times = timeAlg.timeAlgorithm(loadInfo, people, BeginDateTime, EndDateTime, str(EventLength), offset)
-        #     #list_times = timeAlg.timeAlgorithm(loadInfo, people, BeginDateTime, EndDateTime, str(EventLength), 0)
-        # except:
-        #     return "Error timeAlg.timeAlgorithm, BeginDateTime=" + str(BeginDateTime) + ",EndDateTime=" + str(EndDateTime) + ",offset=" + str(offset)
-
-        #list_times = timeAlg.timeAlgorithm(loadInfo, people, startdate, enddate, str(EventLength), offset)
-        #list_times = timeAlg.timeAlgorithm(loadInfo, people, startdate, enddate, str(EventLength), timeAlg.timeZoneString(offset))
         num_times = len(list_times)
 
-        # <form valign='top' style='width:150px; background-color: #E0E0E0;font-size:14px'>"\
-        #         +  \
-        #         + "<input type='submit' value='Choose again...'>\
-        #       </form>\
+        dt_BeginDateTime=datetime.strptime(BeginDateTime,'%Y-%m-%dT%H:%M') #+ timedelta(seconds=int(offset))
+        dt_EndDateTime=datetime.strptime(EndDateTime,'%Y-%m-%dT%H:%M') #+ timedelta(seconds=int(offset))
 
         ret="<form ID='SuggestedTimesForm"+ str(EventID) + "'' valign='top' style='width:150px; background-color: #E0E0E0;font-size:14px'>"
         for aTime in list_times:
-            # 2019-01-09 23:00
+
+            dt_aTime = datetime.strptime(aTime,'%Y-%m-%d %H:%M')
+
             # correct time when deployed in Heroku
             if APPLICATION_LOCATION=='HEROKU':
-                aTime = str(datetime.strptime(aTime,'%Y-%m-%d %H:%M')+timedelta(seconds=int(offset))) # timezone offset if Heroku
+                dt_aTime += timedelta(seconds=int(offset))
             else:
-                aTime = str(datetime.strptime(aTime,'%Y-%m-%d %H:%M')+timedelta(seconds=int(0)))    # no offest
-            ret += "<input name='TTradioTime' type='radio' value='" + aTime + "' >" + aTime + "<br>"
+                dt_aTime += timedelta(seconds=int(0))
+
+            # List the time if it is within range
+            if (dt_aTime >= dt_BeginDateTime) and (dt_aTime < dt_EndDateTime):
+                #s_aTime = dt_aTime.strftime("%Y-%m-%d %H:%M")   # format must match updateDBEventSlectedTime()
+                s_aTime = dt_aTime.strftime("%Y-%m-%d %I:%M %p") # format must match updateDBEventSlectedTime()
+
+                ret += "<input name='TTradioTime' type='radio' value='" + s_aTime + "' >" + s_aTime + "<br>"
         
-        ret += "<input name='TTradioTime' type='button' value='submit' onclick='SubmitSelectedTime(" + str(EventID) + ")'></form>"
+        # Display the submit button
+        ret += "<input name='TTradioTime' type='button' value='submit' onclick='SubmitSelectedTime(" + str(EventID) + ")'></form>" # + "<br><br>body=" + str(body) + "<br><br>eventsResult=" + str(eventsResult)
 
     else:
         ret="set both times"
@@ -872,7 +904,7 @@ def MakeEventDetailHTML(Event):
                 <table valign=top style='width:100%; margin-left:10px; margin-right:5px; margin-top:5px; margin-top:5px'>\
                     <tr style= 'font-size:12px'>\
                       <td>\
-                        <b>Atendees</b>\
+                        <b>Attendees</b>\
                       </td><td>\
                         <b>Title</b>\
                       </td><td>\
@@ -889,7 +921,7 @@ def MakeEventDetailHTML(Event):
                 <table style='width:100%; margin-left:10px; margin-right:10px; margin-top:10px; margin-top:10px'>\
                     <tr valign=top style= 'font-size:12px'>\
                       <td>\
-                      <b>Atendees</b>\
+                      <b>Attendees</b>\
                       </td><td>\
                       <b>Event Title</b>\
                       </td><td>\
@@ -1342,14 +1374,21 @@ def updateDBEventAddAttendee(eventid,NewAttendeeEmail):
     con = connectDB()
     cur = con.cursor()
     
-    # Add the attendee email to the event joining table with PPL_People...
+    # Don't add if invitee is already added
+    SQL = "select * from INV_Invitees where INV_EVE_EventID=%s and LOWER(INV_PPL_Email)=LOWER(%s)"
+    data = (eventid,NewAttendeeEmail,)
+    cur.execute(SQL, data)
+    returnResults = cur.fetchall()
+    if len(returnResults)>0:
+        return eventid
+    
 
+    # Add the attendee email to the event, thus joining table with PPL_People...
     cur.execute("INSERT INTO INV_Invitees(INV_EVE_EventID,INV_PPL_Email,INV_Status) VALUES (%s,LOWER(%s),'needsAction')"\
         ,(eventid, NewAttendeeEmail))
     con.commit()
 
     # Add this person to the PPL_People table if not already there...
-
     SQL = "SELECT *  FROM PPL_People WHERE LOWER(PPL_Email) like LOWER(%s)"
     data = (NewAttendeeEmail,)
     cur.execute(SQL, data)
@@ -1376,7 +1415,10 @@ def updateDBEventSlectedTime(EventDateTime):
     # Convert to UTC (add timezone offset)
     dtStartRange = datetime.strptime(str(EventDateTime['StartRange']),'%Y-%m-%dT%H:%M')+timedelta(hours=int(EventDateTime['timezone'])/60)
     dtEndRange = datetime.strptime(str(EventDateTime['EndRange']),'%Y-%m-%dT%H:%M')+timedelta(hours=int(EventDateTime['timezone'])/60)
-    dtScheduledTime = datetime.strptime(str(EventDateTime['DateAndTime']),'%Y-%m-%d %H:%M:%S')+timedelta(hours=int(EventDateTime['timezone'])/60)
+
+    # format must match SuggestedTimesHTML
+    #dtScheduledTime = datetime.strptime(str(EventDateTime['DateAndTime']),'%Y-%m-%d %H:%M')+timedelta(hours=int(EventDateTime['timezone'])/60)
+    dtScheduledTime = datetime.strptime(str(EventDateTime['DateAndTime']),'%Y-%m-%d %I:%M %p')+timedelta(hours=int(EventDateTime['timezone'])/60)
 
     # UTC String version
     sStartRange = str(dtStartRange)
