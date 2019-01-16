@@ -61,7 +61,6 @@ CLIENT_SECRETS_FILE = "client_secret_899885585030-j4o4conctbnpmke5qqjekejufeo8lb
 
 
 
-
 # THINGS TO CHANGE UPON DEPLOYMENT....
 #-------------------------------------
 APPLICATION_LOCATION='HEROKU' # 'HEROKU' vs 'LOCAL'#
@@ -83,43 +82,11 @@ API_SERVICE_NAME = 'calendar'
 API_VERSION = 'v3'
 
 app = flask.Flask(__name__)
-# Note: A secret key is included in the sample so that it works.
-# If you use this code in your application, replace this with a truly secret
-# key. See http://flask.pocoo.org/docs/0.12/quickstart/#sessions.
+
 app.secret_key = 'QUiXw4DPDmzZl7JKFqBoTWuI'
 
 TEMPLATE_PATH.insert(0, '')
 
-
-
-# Ajax is used to update specific locations within the main page.  
-# Following is a list of IDs used by Ajax to locate the DOM objects. Each
-# ID tag also has the EventID appended. Example: EventAttendees1234
-#
-# Tag                       Purpose
-# --------------            -----------
-# EventAttendees            update table cell that contains pics, names and status of attendees
-# TigerEvent                Display the summary or edit version of an event. Table row.
-# SuggestedTimesTableCell   table cell where suggested or choosen time is displayed
-# 
-# In the routing below, many @app.route() are referenced by Ajax and responde
-# with HTML which target a specific DOM. The return response is as follows
-#   ret=Tag,HTML
-# where Tag is one of the tags above with EventID appended
-#
-# Events can be edited at the same time. To make sure event fields do not get mixed up
-# in the JavaScript, we generated tags with EventID at the end. Following are tags that EventID 
-#
-# Non-Ajax tags
-# -------------
-# EventTitle
-# EventDescription
-# EventLength
-# EventLocation
-# NewAttendeeEmail
-# RangeStart
-# RangeEnd
-# SuggestedTimesForm
 
 
 @app.route('/')
@@ -138,7 +105,7 @@ def eventForm():
         calendar = service.calendars().get(calendarId='primary').execute()
 
     except:
-        # Create flow instance to manage the OAuth 2.0 Authorization Grant Flow steps.
+        # Create flow instance to manage the OAuth 2.0 Authorization steps.
         flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
             CLIENT_SECRETS_FILE, scopes=SCOPES)
 
@@ -163,8 +130,8 @@ def eventForm():
     platform = request.user_agent.platform
     uas = request.user_agent.string
 
-    # supported platforms: iphone, android, windows, macos
-    # supported browsers: chrome,
+    # supported platforms: iphone, android, windows, mac 
+    # supported browsers: chrome
 
     yEmail = calendar['id'].lower()
     name = calendar['summary']
@@ -675,11 +642,6 @@ def oauth2callback():
 def UserLoggedInWithAnotherAccount():
 
     # Timely Tiger does not support concurrent login
-    # with different accounts. This can be detected
-    # when google credentails do not match
-    # user information in the client. Signal that
-    # the user should be sent to login screen
-    # if missmatch occurs
 
     # Load credentials from the session.
     credentials = google.oauth2.credentials.Credentials(
@@ -1077,8 +1039,7 @@ def MakeEventDetailHTML(Event):
 
 def SelectedTimeHTML(eventid,dateandtime):
     # Format selected time in a "<Div" with an ID, so that Javascript
-    # can test that a time has been selected if the user clicks
-    # schedule
+    # can test that a time has been selected if the user clicks schedule
     if dateandtime != None:
         return "<div ID='SelectedTime" + str(eventid) + "'>" + str(dateandtime) + "</div>"
     else:
@@ -1101,8 +1062,7 @@ def AttendeesAndStatusAsHTML(size,eventid,googleid):
     else:
         AttendeesPerRow = 4
 
-    # because the <img tag has an onload event, we will use 
-    # this to schedule a javascript-Ajax refresh of this event, 
+    # because the <img tag has an onload event, we will use this to schedule a javascript-Ajax refresh of this event, 
     # if it is scheduled, in order to show status of attendees
 
     #pdb.set_trace()
