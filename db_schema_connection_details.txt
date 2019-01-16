@@ -1,0 +1,60 @@
+For local database:
+con=p.connect(dbname="sample_db", user="postgres", host="localhost", port="5431")
+
+For HEROKU database:
+Connection info:
+dbname=d877724ks1j12b
+host=ec2-54-243-212-227.compute-1.amazonaws.com 
+port=5432 
+user=jrudpelibtqtvc password=b7e73c4bcb6846b62ca1e1a406ccf2e0b970d51c995a15a937a9f4a3680bc3a4 
+sslmode=require"
+
+
+DROP TABLE EVE_Events;
+DROP TABLE INV_Invitees;
+DROP TABLE PPL_People;
+
+CREATE TABLE EVE_Events(
+	EVE_EventID int, PRIMARY KEY(EVE_EventID)
+	,EVE_EventTitle varchar(100)
+	,EVE_Description varchar(1000)
+	,EVE_Location varchar(1000)
+	,EVE_DateAndTime timestamp
+	,EVE_Minutes int
+	,EVE_StartRange timestamp
+	,EVE_EndRange timestamp
+	,EVE_googleID varchar(1000)
+	,EVE_Owner_PPL_Email varchar(1000)
+);
+CREATE TABLE INV_Invitees
+(
+	INV_EVE_EventID INT
+	,INV_PPL_Email varchar(1000)
+,INV_Status varchar(20) -- needsAction, accepted, declined
+);
+CREATE TABLE PPL_People(
+	PPL_Email varchar(1000), PRIMARY KEY(PPL_Email)
+	,PPL_Name varchar(200)
+	,PPL_PhotoLink varchar(1000)
+);
+
+-- Insert a seed event so that the SQL works to generate EventID
+INSERT INTO EVE_Events(EVE_EventID) VALUES (100);
+
+-- Insert “Dale Lee”
+INSERT INTO PPL_People(PPL_Email,PPL_Name,PPL_PhotoLink) 
+values ('dalelee@princeton.edu', 'Dale','https://lh3.googleusercontent.com/a-/AAuE7mBlJPu948leWpqfnD3evl1IdrQgPvT51yx2IKdxZA=s50-c-k-no');
+
+-- Insert "Nicholas Callegari"
+INSERT INTO PPL_People(PPL_Email,PPL_Name,PPL_PhotoLink) 
+values ('npc2@princeton.edu', 'Nicholas Callegari','https://lh3.googleusercontent.com/a-/AAuE7mCqoExTH_2F7bT7JlbmA7RGVN7NnivBtLFB9WWU=s70-p-k-rw-no');
+
+-- Insert "Alexander Bechtold"
+INSERT INTO PPL_People(PPL_Email,PPL_Name,PPL_PhotoLink) 
+values ('agb2@princeton.edu', 'Alexander Bechtold','https://lh3.googleusercontent.com/a-/AAuE7mCytNR-N7vt7sih53oVBCQ7m6BherTVZxst3hcL=s70-p-k-rw-no');
+
+-- Insert "Yang Shao"
+INSERT INTO PPL_People(PPL_Email,PPL_Name,PPL_PhotoLink) 
+values ('yangshao@princeton.edu', 'Yang Shao','https://lh3.googleusercontent.com/a-/AAuE7mB8tubWzOxk1HExReuC6rICE6juL6kXnJD6mf53uyo=s70-p-k-rw-no');
+
+
